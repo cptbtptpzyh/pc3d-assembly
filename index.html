@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#05070d" />
+<meta name="description" content="PC 主机 3D 拆解可视化 · Three.js r147 · 纯静态离线渲染" />
+<title>PC 主机 3D 拆解 · PC3D ASSEMBLY VIEWER</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="css/style.css" />
+<style>
+  /* 首屏骨架（仅防白闪；正式样式在 css/style.css），index.html 内联样式只用于此处 */
+  html, body { margin: 0; height: 100%; background: #05070d; color: #e6f1ff; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; z-index: 900; }
+</style>
+</head>
+<body>
+
+<!--
+  ================== PC3D · index.html ==================
+  UI 容器 id 约定（内容全部由 js/ui.js 动态生成，main.js 可按需查询）：
+    #app             根容器（抽屉 / 就绪状态 class 挂在这里）
+    #canvas-wrap     WebGL 画布容器。main.js 二选一：
+                     a) 复用现成 canvas: new THREE.WebGLRenderer({ canvas: document.getElementById('gl') })
+                     b) new THREE.WebGLRenderer(...) 后 wrap.appendChild(renderer.domElement)
+                     （CSS 已对 #canvas-wrap 内任意 canvas 做绝对定位铺满，两种都成立）
+    #labels-layer    CSS2DRenderer (labels.js) 挂载点，pointer-events:none
+    #panel-left      左面板外壳；#part-list 为部件清单容器
+    #panel-right     右面板外壳；#detail 为详情卡容器
+    #toolbar         顶部工具栏（开关 switch / 帮助 / 引导 / 移动端抽屉按钮）
+    #variant-bar     型号切换 pills（无选中部件时自动隐藏）
+    #explode-slider  拆解滑杆 + 全部拆解 / 复原
+    #hud             性能 HUD（fps / drawcalls / triangles）
+    #guide           操作引导（5 步 tour）浮层
+    #help            帮助弹窗（快捷键 / 操作说明）
+    #toast           toast 堆栈
+    #loading         首屏遮罩：main.js 在 init 完成后调用 PC3D.ui.hideLoading() 移除，
+                     也可提前用 PC3D.ui.setLoading(0.4, '构建几何体…') 推进度
+    #dock            底部浮动控制坞（内含 #variant-bar 与 #explode-slider，仅布局用）
+  ======================================================
+-->
+
+<div id="app" class="app">
+
+  <div id="canvas-wrap" class="canvas-wrap">
+    <canvas id="gl" class="gl-canvas"></canvas>
+    <div id="labels-layer" class="labels-layer" aria-hidden="true"></div>
+  </div>
+
+  <header id="toolbar" class="toolbar" role="toolbar" aria-label="主工具栏"></header>
+
+  <aside id="panel-left" class="panel panel--left" aria-label="部件清单">
+    <div id="part-list" class="part-list"></div>
+  </aside>
+
+  <aside id="panel-right" class="panel panel--right" aria-label="部件详情">
+    <div id="detail" class="detail"></div>
+  </aside>
+
+  <div id="dock" class="dock">
+    <div id="variant-bar" class="variant-bar" hidden></div>
+    <div id="explode-slider" class="explode-bar"></div>
+  </div>
+
+  <div id="hud" class="hud"></div>
+
+  <div id="overlay" class="overlay">
+    <div id="toast" class="toast-stack" role="status" aria-live="polite"></div>
+    <div id="guide" class="guide" hidden></div>
+    <div id="help" class="help" hidden></div>
+  </div>
+
+  <div id="loading" class="loading" role="status" aria-live="polite">
+    <div class="loading__inner">
+      <div class="loading__brand"><b>PC3D</b><span>// ASSEMBLY VIEWER</span></div>
+      <div class="loading__ring" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="loading__track" aria-hidden="true"><i id="loading-bar"></i></div>
+      <p class="loading__text" id="loading-text">正在装载三维场景…</p>
+      <p class="loading__hint">THREE.JS r147 · WEBGL · 纯静态离线渲染</p>
+    </div>
+  </div>
+
+  <noscript><div class="noscript">请启用 JavaScript 以查看 3D 拆解视图。</div></noscript>
+</div>
+
+<!-- CONTRACT §1 脚本顺序（不可调整） -->
+<script src="vendor/three/three.min.js"></script>
+<script src="vendor/three/js/controls/OrbitControls.js"></script>
+<script src="vendor/three/js/postprocessing/EffectComposer.js"></script>
+<script src="vendor/three/js/postprocessing/RenderPass.js"></script>
+<script src="vendor/three/js/postprocessing/ShaderPass.js"></script>
+<script src="vendor/three/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="vendor/three/js/postprocessing/MaskPass.js"></script>
+<script src="vendor/three/js/shaders/CopyShader.js"></script>
+<script src="vendor/three/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="vendor/three/js/shaders/GammaCorrectionShader.js"></script>
+<script src="vendor/three/js/renderers/CSS2DRenderer.js"></script>
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/materials.js"></script>
+<script src="js/parts-core.js"></script>
+<script src="js/parts-gpu.js"></script>
+<script src="js/stage.js"></script>
+<script src="js/labels.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
